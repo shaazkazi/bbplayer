@@ -142,11 +142,34 @@
 
         if (url.endsWith('.m3u8')) {
           if (Hls.isSupported()) {
-            const hls = new Hls();
+            const hls = new Hls({
+              maxBufferLength: 30,
+              maxMaxBufferLength: 60,
+              enableWorker: true,
+              lowLatencyMode: true,
+              backBufferLength: 90
+            });
+            
             hls.loadSource(url);
             hls.attachMedia(video);
 
-            // Handle quality levels
+            // Add error handling
+            hls.on(Hls.Events.ERROR, function (event, data) {
+              if (data.fatal) {
+                switch (data.type) {
+                  case Hls.ErrorTypes.NETWORK_ERROR:
+                    hls.startLoad();
+                    break;
+                  case Hls.ErrorTypes.MEDIA_ERROR:
+                    hls.recoverMediaError();
+                    break;
+                  default:
+                    hls.destroy();
+                    break;
+                }
+              }
+            });
+
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
               const availableQualities = hls.levels.map((level, index) => ({
                 label: level.height + 'p',
@@ -161,11 +184,13 @@
               };
 
               player.updateSettingsMenu();
+              video.play().catch(e => console.log('Playback failed:', e));
             });
           } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = url;
-          } else {
-            alert('Your browser does not support HLS playback.');
+            video.addEventListener('loadedmetadata', () => {
+              video.play().catch(e => console.log('Playback failed:', e));
+            });
           }
         } else if (url.endsWith('.mpd')) {
           const playerInstance = dashjs.MediaPlayer().create();
