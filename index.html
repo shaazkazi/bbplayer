@@ -43,6 +43,11 @@
       height: 50px;
       fill: #007bff;
     }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
     input {
       padding: 12px;
       font-size: 16px;
@@ -52,9 +57,25 @@
       color: #fff;
       outline: none;
       transition: border-color 0.3s;
+      width: 100%;
     }
     input:focus {
       border-color: #007bff;
+    }
+    .clear-url {
+      position: absolute;
+      right: 12px;
+      cursor: pointer;
+      padding: 4px;
+      display: none;
+    }
+    .clear-url svg {
+      width: 20px;
+      height: 20px;
+      stroke: #ffffff;
+    }
+    .clear-url:hover svg {
+      stroke: #007bff;
     }
     button {
       padding: 12px;
@@ -97,14 +118,22 @@
         <polygon points="5 3 19 12 5 21 5 3"></polygon>
       </svg>
     </div>
-    <input type="text" id="streamUrl" placeholder="Enter HLS (m3u8) or DASH (mpd) URL">
+    <div class="input-wrapper">
+      <input type="text" id="streamUrl" placeholder="Enter HLS (m3u8) or DASH (mpd) URL">
+      <div class="clear-url" id="clearUrl">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </div>
+    </div>
     <div id="dashInputFields" class="dash-input">
       <input type="text" id="kidInput" placeholder="Enter KID (for DASH)">
       <input type="text" id="keyInput" placeholder="Enter Key (for DASH)">
     </div>
     <button id="loadStream">Load Stream</button>
     <div class="video-wrapper">
-      <video id="video" playsinline controls></video>
+      <video id="video" controls></video>
     </div>
   </div>
 
@@ -116,22 +145,36 @@
       const keyInput = document.getElementById('keyInput');
       const loadStreamButton = document.getElementById('loadStream');
       const dashInputFields = document.getElementById('dashInputFields');
+      const clearUrlButton = document.getElementById('clearUrl');
 
-      // Initialize Plyr
       const player = new Plyr(video, {
         controls: [
           'play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
         ],
         settings: ['captions', 'quality', 'speed'],
+        fullscreen: { enabled: true, iosNative: true },
+        playsinline: false,
+        ratio: '16:9',
+        autoplay: true
       });
 
-      // Show/hide DASH-specific fields based on URL input
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        video.setAttribute('x-webkit-airplay', 'allow');
+        video.setAttribute('webkit-playsinline', 'false');
+      }
+
       streamUrlInput.addEventListener('input', () => {
         const url = streamUrlInput.value;
+        clearUrlButton.style.display = url ? 'block' : 'none';
         dashInputFields.style.display = url.endsWith('.mpd') ? 'flex' : 'none';
       });
 
-      // Load the stream
+      clearUrlButton.addEventListener('click', () => {
+        streamUrlInput.value = '';
+        clearUrlButton.style.display = 'none';
+        dashInputFields.style.display = 'none';
+      });
+
       loadStreamButton.addEventListener('click', () => {
         const url = streamUrlInput.value;
 
@@ -153,7 +196,6 @@
             hls.loadSource(url);
             hls.attachMedia(video);
 
-            // Add error handling
             hls.on(Hls.Events.ERROR, function (event, data) {
               if (data.fatal) {
                 switch (data.type) {
@@ -176,7 +218,7 @@
                 value: index
               }));
 
-              player.options.quality = {
+              player.quality = {
                 default: availableQualities[0].value,
                 options: availableQualities.map(q => q.value),
                 forced: true,
@@ -195,6 +237,39 @@
         } else if (url.endsWith('.mpd')) {
           const playerInstance = dashjs.MediaPlayer().create();
           playerInstance.initialize(video, url, true);
+
+          playerInstance.on('streamInitialized', () => {
+            const qualities = playerInstance.getBitrateInfoListFor('video');
+            const availableQualities = qualities.map((q, index) => ({
+              label: `${Math.round(q.height)}p`,
+              value: index
+            }));
+
+            player.quality = {
+              default: availableQualities[availableQualities.length - 1].value,
+              options: availableQualities.map(q => q.value),
+              forced: true,
+              onChange: (quality) => {
+                playerInstance.setQualityFor('video', quality);
+              }
+            };
+          });
+
+          playerInstance.updateSettings({
+            'streaming': {
+              'fastSwitchEnabled': true,
+              'abr': {
+                'useDefaultABRRules': true,
+                'initialBitrate': { 'video': 2000 }
+              },
+              'buffer': {
+                'fastSwitchEnabled': true,
+                'bufferTimeAtTopQuality': 30
+              }
+            }
+          });
+          
+          video.play().catch(e => console.log('Playback failed:', e));
         } else {
           alert('Invalid URL format. Supported formats: .m3u8, .mpd');
         }
