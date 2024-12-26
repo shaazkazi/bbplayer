@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modern HLS/DASH Player</title>
+  <title>HLS/DASH Player</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/716/716784.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/dashjs/dist/dash.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -32,12 +33,15 @@
       flex-direction: column;
       gap: 16px;
     }
-    h1 {
-      font-size: 24px;
-      font-weight: 600;
-      text-align: center;
-      color: #ffffff;
-      margin: 0 0 16px 0;
+    .logo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .logo svg {
+      height: 50px;
+      fill: #007bff;
     }
     input {
       padding: 12px;
@@ -88,7 +92,11 @@
 </head>
 <body>
   <div class="player-container">
-    <h1>Modern HLS/DASH Player</h1>
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+    </div>
     <input type="text" id="streamUrl" placeholder="Enter HLS (m3u8) or DASH (mpd) URL">
     <div id="dashInputFields" class="dash-input">
       <input type="text" id="kidInput" placeholder="Enter KID (for DASH)">
