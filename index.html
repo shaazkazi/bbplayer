@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HLS/DASH Player</title>
+  <title>HLS/DASH/MP4 Player</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/716/716784.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/dashjs/dist/dash.all.min.js"></script>
@@ -119,7 +119,7 @@
       </svg>
     </div>
     <div class="input-wrapper">
-      <input type="text" id="streamUrl" placeholder="Enter HLS (m3u8) or DASH (mpd) URL">
+      <input type="text" id="streamUrl" placeholder="Enter HLS (m3u8), DASH (mpd), or MP4 URL">
       <div class="clear-url" id="clearUrl">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -185,93 +185,20 @@
 
         if (url.endsWith('.m3u8')) {
           if (Hls.isSupported()) {
-            const hls = new Hls({
-              maxBufferLength: 30,
-              maxMaxBufferLength: 60,
-              enableWorker: true,
-              lowLatencyMode: true,
-              backBufferLength: 90
-            });
-            
+            const hls = new Hls();
             hls.loadSource(url);
             hls.attachMedia(video);
-
-            hls.on(Hls.Events.ERROR, function (event, data) {
-              if (data.fatal) {
-                switch (data.type) {
-                  case Hls.ErrorTypes.NETWORK_ERROR:
-                    hls.startLoad();
-                    break;
-                  case Hls.ErrorTypes.MEDIA_ERROR:
-                    hls.recoverMediaError();
-                    break;
-                  default:
-                    hls.destroy();
-                    break;
-                }
-              }
-            });
-
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              const availableQualities = hls.levels.map((level, index) => ({
-                label: level.height + 'p',
-                value: index
-              }));
-
-              player.quality = {
-                default: availableQualities[0].value,
-                options: availableQualities.map(q => q.value),
-                forced: true,
-                onChange: qualityIndex => hls.currentLevel = qualityIndex
-              };
-
-              player.updateSettingsMenu();
-              video.play().catch(e => console.log('Playback failed:', e));
-            });
           } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = url;
-            video.addEventListener('loadedmetadata', () => {
-              video.play().catch(e => console.log('Playback failed:', e));
-            });
           }
         } else if (url.endsWith('.mpd')) {
           const playerInstance = dashjs.MediaPlayer().create();
           playerInstance.initialize(video, url, true);
-
-          playerInstance.on('streamInitialized', () => {
-            const qualities = playerInstance.getBitrateInfoListFor('video');
-            const availableQualities = qualities.map((q, index) => ({
-              label: `${Math.round(q.height)}p`,
-              value: index
-            }));
-
-            player.quality = {
-              default: availableQualities[availableQualities.length - 1].value,
-              options: availableQualities.map(q => q.value),
-              forced: true,
-              onChange: (quality) => {
-                playerInstance.setQualityFor('video', quality);
-              }
-            };
-          });
-
-          playerInstance.updateSettings({
-            'streaming': {
-              'fastSwitchEnabled': true,
-              'abr': {
-                'useDefaultABRRules': true,
-                'initialBitrate': { 'video': 2000 }
-              },
-              'buffer': {
-                'fastSwitchEnabled': true,
-                'bufferTimeAtTopQuality': 30
-              }
-            }
-          });
-          
-          video.play().catch(e => console.log('Playback failed:', e));
+        } else if (url.endsWith('.mp4')) {
+          video.src = url;
+          video.play();
         } else {
-          alert('Invalid URL format. Supported formats: .m3u8, .mpd');
+          alert('Invalid URL format. Supported formats: .m3u8, .mpd, .mp4');
         }
       });
     });
