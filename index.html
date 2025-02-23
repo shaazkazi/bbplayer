@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HLS/DASH/MP4 Player</title>
-  <link rel="icon" href="play-button.png" type="image/png">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/716/716784.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/dashjs/dist/dash.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -176,38 +176,32 @@
       });
 
       loadStreamButton.addEventListener('click', () => {
-  const url = streamUrlInput.value.trim();
+        const url = streamUrlInput.value;
 
-  if (!url) {
-    alert('Please enter a valid stream URL.');
-    return;
-  }
+        if (!url) {
+          alert('Please enter a valid stream URL.');
+          return;
+        }
 
-  try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname.toLowerCase();
-
-    if (pathname.endsWith('.m3u8')) {
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(url);
-        hls.attachMedia(video);
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-      }
-    } else if (pathname.endsWith('.mpd')) {
-      const playerInstance = dashjs.MediaPlayer().create();
-      playerInstance.initialize(video, url, true);
-    } else if (pathname.endsWith('.mp4')) {
-      video.src = url;
-      video.play();
-    } else {
-      alert('Invalid URL format. Supported formats: .m3u8, .mpd, .mp4');
-    }
-  } catch (error) {
-    alert('Invalid URL format. Please enter a proper URL.');
-  }
-});
+        if (url.endsWith('.m3u8')) {
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+          }
+        } else if (url.endsWith('.mpd')) {
+          const playerInstance = dashjs.MediaPlayer().create();
+          playerInstance.initialize(video, url, true);
+        } else if (url.endsWith('.mp4')) {
+          video.src = url;
+          video.play();
+        } else {
+          alert('Invalid URL format. Supported formats: .m3u8, .mpd, .mp4');
+        }
+      });
+    });
   </script>
 </body>
 </html>
